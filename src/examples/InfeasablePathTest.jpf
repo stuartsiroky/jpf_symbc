@@ -1,0 +1,20 @@
+target=testCase.InfeasablePath
+
+classpath=${jpf-symbc}/build/examples 
+
+sourcepath=${jpf-symbc}/src/examples
+
+symbolic.method= testCase.InfeasablePath.start(sym)
+#symbolic.min_int=-1
+#symbolic.max_int=2 
+
+#symbolic.dp=yices
+
+#listener = .symbc.SymbolicListener
+#listener = .symbc.MyChoiceSelector,.symbc.InfeasableBSFSymbolicListener
+listener = .symbc.InfeasableBSFSymbolicListener
+
+#choice.use_trace=trace
+#choice.calls=codeExamples.InfeasablePath.foo*
+
+vm.storage.class=nil

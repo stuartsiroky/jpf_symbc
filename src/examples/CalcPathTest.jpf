@@ -1,0 +1,18 @@
+target=calc.view.CalculatorView
+
+classpath=${jpf-symbc}/build/examples 
+
+sourcepath=${jpf-symbc}/src/examples
+
+symbolic.method=calc.view.CalculatorView.start(sym#sym)
+#symbolic.method=calc.view.CalculatorView.start_equals()
+
+symbolic.min_int=0
+symbolic.max_int=9 
+
+#symbolic.dp=yices
+
+#listener = .symbc.SymbolicListener
+listener = .symbc.CalcBSFSymbolicListener
+
+vm.storage.class=nil
