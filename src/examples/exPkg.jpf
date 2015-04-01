@@ -1,0 +1,16 @@
+target=exPkg.MyTest
+
+classpath= C:/Users/StuartSiroky/workspace_luna_wala/WalaTest/bin
+#classpath= C:/Users/StuartSiroky/workspace_luna_wala/exPkg1.jar
+
+symbolic.method=exPkg.MyTest.start()
+
+#symbolic.min_int=0
+#symbolic.max_int=9 
+
+#symbolic.dp=yices
+
+#listener = .symbc.SymbolicListener
+listener = .symbc.exPkgBSFSymbolicListener
+
+vm.storage.class=nil

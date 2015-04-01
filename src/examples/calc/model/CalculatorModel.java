@@ -1,33 +1,56 @@
 package calc.model;
 
+import java.util.HashMap;
+
 public class CalculatorModel extends AbstractModel {
 	private int total = 0;
 	private int current = 0;
 	private String state = "add";
+
+	// use this hash to see if a method should be invoked.
+	static HashMap<String, Boolean> methodEn_hm = new HashMap<String, Boolean>();
 	
-	public void clear(){total = 0; store(0);}
-	
+	public void clear(){
+		if (methodEn_hm.get("calc.model.CalculatorModel.clear()V")) {
+		total = 0; store(0);
+		}
+	}
+	 
+	public void setMethodEn(String mname, Boolean val) {
+		methodEn_hm.put(mname, val);
+	}
+
 	public void store(int value){
-		current = value;
+		if (methodEn_hm.get("calc.model.CalculatorModel.store(I)V")) {
+			current = value;
 		ModelEvent me = new ModelEvent(this, 1, "", current);
 		//System.out.println("model.store::"+value);
 		notifyChanged(me);
+		}
 	}
 	
 	public void notifyChanged(ModelEvent event){
-	super.notifyChanged(event);
+		if (methodEn_hm.get("calc.model.CalculatorModel.notifyChanged(Lcalc/model/ModelEvent;)V")) {
+			super.notifyChanged(event);
+		}
 	}
 	public void add()//throws Digit5
 	{
-		state = "add"; total = current;
-		//System.out.println("STUART CalculatorModel.add");
+		if (methodEn_hm.get("calc.model.CalculatorModel.add()V")) {
+			state = "add"; total = current;
 		}
+		//System.out.println("STUART CalculatorModel.add");
+	}
 	
-	public void subtract(){state = "subtract"; total = current;
+	public void subtract(){
+		if (methodEn_hm.get("calc.model.CalculatorModel.subtract()V")) {
+			state = "subtract"; total = current;
+		}
 	//System.out.println("STUART CalculatorModel.subtract");
 	}
 	
 	public void equals(){
+		if (methodEn_hm.get("calc.model.CalculatorModel.equals()V")) {
 		if(state == "add"){
 			total += current;
 		}
@@ -38,26 +61,33 @@ public class CalculatorModel extends AbstractModel {
 		ModelEvent me = new ModelEvent(this, 1, "", total);
 		//System.out.println("model.equals:: state = "+state+" total = "+current);
 		notifyChanged(me);
+		}
 	}
 
 		public int getTotal(){return total;}
 
 		public void boo() {
+			if (methodEn_hm.get("calc.model.CalculatorModel.boo()V")) {
 			ModelEvent me = new ModelEvent(this, 1, "", current);
+		
 			//System.out.println("This is scary stuff");
 //			b0();
 //			dummy();
 			notifyChanged(me);
 //			b4();
 //			b1();
+			}
 		}
 		
 		public void hello() {
-		ModelEvent me = new ModelEvent(this, 1, "", current);
+			if (methodEn_hm.get("calc.model.CalculatorModel.hello()V")) {		
+			ModelEvent me = new ModelEvent(this, 1, "", current);
+			
 //		//System.out.println("How are you?");
 //		f1();
 		notifyChanged(me);
 //		f3();
+			}
 	} 
 		
 //		private void dummy() {

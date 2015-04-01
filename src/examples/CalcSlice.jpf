@@ -1,0 +1,15 @@
+target=calc.view.CalculatorView
+
+classpath= C:/Users/StuartSiroky/git/NoSwingCalc/bin
+
+symbolic.method=calc.view.CalculatorView.start(sym#sym)
+
+symbolic.min_int=0
+symbolic.max_int=9 
+
+#symbolic.dp=yices
+
+#listener = .symbc.SymbolicListener
+listener = .symbc.Equals_SliceSymbolicListener
+
+vm.storage.class=nil

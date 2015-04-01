@@ -1,5 +1,7 @@
 package calc.view;
 
+import java.util.HashMap;
+
 import calc.controller.CalculatorController;
 import calc.model.CalculatorModel;
 import calc.model.ModelEvent;
@@ -39,7 +41,13 @@ public class CalculatorView extends JFrameView {
 	public  JButton booButton = new JButton(BOO);
 	public Handler handler = new Handler();
 	static CalculatorView cv;
+	// use this hash to see if a method should be invoked.
+	static HashMap<String, Boolean> methodEn_hm = new HashMap<String, Boolean>();
 	
+	public void setMethodEn(String mname, Boolean val) {
+		methodEn_hm.put(mname, val);
+	}
+
 	public CalculatorView(CalculatorModel model, CalculatorController controller) {
 		super(model, controller);
 		System.out.println("Initial");
@@ -84,9 +92,11 @@ public class CalculatorView extends JFrameView {
 
 	// Now implement the necessary event handling code
 	public void modelChanged(ModelEvent event) {
-		String msg = event.getAmount() + "";
+		if (methodEn_hm.get("calc.view.CalculatorView.modelChanged(Lcalc/model/ModelEvent;)V")) {		
+					String msg = event.getAmount() + "";
 		textField.setText(msg);
 		//System.out.println("modeChanged::msg = "+msg);
+	}
 	}
 
 	// Inner classes for Event Handling
@@ -117,8 +127,9 @@ public class CalculatorView extends JFrameView {
 		start(a,b);
 	}
 	static void start ( int a, int b) {
-		CalculatorView calc = cv;
-		equals(calc);
+		if (methodEn_hm.get("calc.view.CalculatorView.start(II)V")) {		
+					CalculatorView calc = cv;
+		//equals(calc);
 		if(a > b){
 			fake_state = 0;
 			addition(calc,a,b);	
@@ -139,31 +150,41 @@ public class CalculatorView extends JFrameView {
 		} else {
 //			vv0();
 		}
+		}
 	}
 	static void start_equals() {
-		equals(cv);
+		if (methodEn_hm.get("calc.view.CalculatorView.start_equals()V")) {		
+					equals(cv);
+		}
 	}
 	
 	static void addition(CalculatorView calc, int a, int b){
-		pickButton(calc,a);
+		if (methodEn_hm.get("calc.view.CalculatorView.addition(Lcalc/view/CalculatorView;II)V")) {		
+					pickButton(calc,a);
 		calc.plusButton.pushed();
 		pickButton(calc,b);
+		}
 	}
 	
 	static void subtraction(CalculatorView calc, int a, int b){
-		pickButton(calc,b);
+		if (methodEn_hm.get("calc.view.CalculatorView.subtraction(Lcalc/view/CalculatorView;II)V")) {		
+					pickButton(calc,b);
 		calc.minusButton.pushed();
 		pickButton(calc,a);
+		}
 	}
 	
 	static void equals(CalculatorView calc){
-		calc.equalsButton.pushed();
+		if (methodEn_hm.get("calc.view.CalculatorView.equals(Lcalc/view/CalculatorView;)V")) {		
+					calc.equalsButton.pushed();
+		}
 	}
 
 
 	
 	static void pickButton(CalculatorView calc, int val){
-		switch(val) {
+		if (methodEn_hm.get("calc.view.CalculatorView.pickButton(Lcalc/view/CalculatorView;I)V")) {		
+					switch(val) {
 		case 0: calc.jButton0.pushed(); break;
 		case 1: calc.jButton1.pushed(); break;
 		case 2: calc.jButton2.pushed(); break;
@@ -175,23 +196,28 @@ public class CalculatorView extends JFrameView {
 		case 8: calc.jButton8.pushed(); break;
 		case 9: calc.jButton9.pushed(); break;
 		}
+		}
 	}
 
 	static void hello(CalculatorView calc){
-		pickButton(calc,0);
+		if (methodEn_hm.get("calc.view.CalculatorView.hello(Lcalc/view/CalculatorView;)V")) {		
+					pickButton(calc,0);
 		pickButton(calc,1);
 		pickButton(calc,1);
 		pickButton(calc,3);
 		pickButton(calc,4);
 		calc.helloButton.pushed();
 //		vv3();
+		}
 	}
 
 	static void boo(CalculatorView calc){
-		pickButton(calc,0);
+		if (methodEn_hm.get("calc.view.CalculatorView.boo(Lcalc/view/CalculatorView;)V")) {		
+					pickButton(calc,0);
 		pickButton(calc,0);
 		pickButton(calc,8);
 		calc.booButton.pushed();
+		}
 	}	
 //	private static void vv0() {vv1();}
 //	private static void vv1() {vv2();}

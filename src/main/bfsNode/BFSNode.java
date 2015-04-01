@@ -158,8 +158,10 @@ public class BFSNode extends Node {
 	
 	public void addPath_condition(String path_condition) {
 		String tmp[] = path_condition.split("\\n");
-		if(!this.path_condition.contains(tmp[1])) {
-			this.path_condition.add(tmp[1]);
+		if(tmp.length>1) {
+			if(!this.path_condition.contains(tmp[1])) {
+				this.path_condition.add(tmp[1]);
+			}
 		}
 	}
 	

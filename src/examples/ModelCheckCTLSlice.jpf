@@ -1,0 +1,16 @@
+target=modelCheckCTL.view.ModelCheckCTLView
+
+classpath= C:/Users/StuartSiroky/workspace_luna_wala/modelCheckCTL_noSwing/bin
+ 
+symbolic.method=modelCheckCTL.view.ModelCheckCTLView.KripkeCTLDriver(sym)
+
+symbolic.min_int=0
+symbolic.max_int=3 
+
+#symbolic.dp=yices
+
+#listener = .symbc.SymbolicListener
+listener = .symbc.ModelCheckCTLEquals_SliceSymbolicListener
+#listener = .symbc.ModelCheckCTLBSFSymbolicListener
+
+vm.storage.class=nil

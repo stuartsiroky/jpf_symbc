@@ -20,35 +20,20 @@ package gov.nasa.jpf.symbc;
 import gov.nasa.jpf.Config;
 import gov.nasa.jpf.JPF;
 import gov.nasa.jpf.PropertyListenerAdapter;
-import gov.nasa.jpf.vm.ChoiceGenerator;
-import gov.nasa.jpf.vm.ChoicePoint;
-import gov.nasa.jpf.vm.ClassInfo;
-import gov.nasa.jpf.vm.Instruction;
-import gov.nasa.jpf.vm.LocalVarInfo;
-import gov.nasa.jpf.vm.MethodInfo;
-import gov.nasa.jpf.vm.StackFrame;
-import gov.nasa.jpf.vm.SystemState;
-import gov.nasa.jpf.vm.ThreadInfo;
-import gov.nasa.jpf.vm.Types;
-import gov.nasa.jpf.vm.VM;
 import gov.nasa.jpf.jvm.bytecode.ARETURN;
 import gov.nasa.jpf.jvm.bytecode.DRETURN;
 import gov.nasa.jpf.jvm.bytecode.FRETURN;
 import gov.nasa.jpf.jvm.bytecode.IRETURN;
 import gov.nasa.jpf.jvm.bytecode.JVMInvokeInstruction;
-import gov.nasa.jpf.jvm.bytecode.LRETURN;
 import gov.nasa.jpf.jvm.bytecode.JVMReturnInstruction;
-import gov.nasa.jpf.jvm.bytecode.NOP;
+import gov.nasa.jpf.jvm.bytecode.LRETURN;
 import gov.nasa.jpf.report.ConsolePublisher;
 import gov.nasa.jpf.report.Publisher;
 import gov.nasa.jpf.report.PublisherExtension;
 import gov.nasa.jpf.search.Search;
-import gov.nasa.jpf.symbc.SymbolicInstructionFactory;
 import gov.nasa.jpf.symbc.bytecode.BytecodeUtils;
 import gov.nasa.jpf.symbc.bytecode.INVOKESTATIC;
 import gov.nasa.jpf.symbc.concolic.PCAnalyzer;
-
-//import gov.nasa.jpf.symbc.numeric.Comparator;
 import gov.nasa.jpf.symbc.numeric.Expression;
 import gov.nasa.jpf.symbc.numeric.IntegerConstant;
 import gov.nasa.jpf.symbc.numeric.IntegerExpression;
@@ -56,35 +41,30 @@ import gov.nasa.jpf.symbc.numeric.PCChoiceGenerator;
 import gov.nasa.jpf.symbc.numeric.PathCondition;
 import gov.nasa.jpf.symbc.numeric.RealConstant;
 import gov.nasa.jpf.symbc.numeric.RealExpression;
-import gov.nasa.jpf.symbc.numeric.SymbolicInteger;
-//import gov.nasa.jpf.symbc.numeric.SymbolicReal;
-
 import gov.nasa.jpf.symbc.numeric.SymbolicConstraintsGeneral;
 //import gov.nasa.jpf.symbc.numeric.SymbolicInteger;
-
+import gov.nasa.jpf.symbc.numeric.SymbolicInteger;
 import gov.nasa.jpf.util.Pair;
+import gov.nasa.jpf.vm.ChoiceGenerator;
+import gov.nasa.jpf.vm.ClassInfo;
+import gov.nasa.jpf.vm.Instruction;
+import gov.nasa.jpf.vm.LocalVarInfo;
+import gov.nasa.jpf.vm.MethodInfo;
+import gov.nasa.jpf.vm.StackFrame;
+import gov.nasa.jpf.vm.ThreadInfo;
+import gov.nasa.jpf.vm.Types;
+import gov.nasa.jpf.vm.VM;
 
-import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Stack;
 import java.util.StringTokenizer;
 import java.util.Vector;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-//import org.apache.bcel.generic.InstructionList;
-//import org.apache.bcel.generic.NOP;
 
 
-import jimpleParser.JimpleParser;
-import graph.*;
-import bfsNode.*;
-
-public class BSFSymbolicListener extends PropertyListenerAdapter implements
+public class SliceSymbolicListener extends PropertyListenerAdapter implements
 		PublisherExtension {
 
 	/*
@@ -92,48 +72,15 @@ public class BSFSymbolicListener extends PropertyListenerAdapter implements
 	 * order to turn off state matching during symbolic execution no longer
 	 * necessary because we run spf stateless
 	 */
-	  // set if we replay a trace
-	  ChoicePoint trace;
-	  // start the search when reaching the end of the stored trace. If not set,
-	  // the listener will just randomly select single choices once the trace
-	  // got processed
-	  boolean searchAfterTrace;
-	  boolean singleChoice = true;
-	  
-	Stack<BFSNode> MethodCallStack = new Stack<BFSNode>();// added
-	BFSNode CalleeMethod;// added
-	String currMethodName;
-	BFSGraph Bgraph = new BFSGraph(); // added
-	BFSGraph GMgraph = new BFSGraph();
-	boolean useGM = false;
-	ArrayList<BFSNode> path = new ArrayList<BFSNode>();
-
-	String startNodeName = "";
-	String finalNodeName = "";
-	String searchPrefix = "";
-	String[] fileList = new String[0];
-
-	long origStartTime = 0;
-	long startTime = 0;
-	long stopTime = 0;
-	long graphReadTime = 0;
-	long graphJPFTime = 0;
-
+	protected Stack<String> MethodCallStack = new Stack<String>();// added
+	private String CalleeMethod;
+	
 	private Map<String, MethodSummary> allSummaries;
 	private String currentMethodName = "";
 
-	public BSFSymbolicListener(Config conf, JPF jpf) {
+	public SliceSymbolicListener(Config conf, JPF jpf) {
 		jpf.addPublisherExtension(ConsolePublisher.class, this);
 		allSummaries = new HashMap<String, MethodSummary>();
-		startNodeName = "testCase.InfeasablePath.start(I)V";
-		finalNodeName = "testCase.InfeasablePath.foo_bar()V";
-		searchPrefix = "testCase";
-		
-	    VM vm = jpf.getVM();
-	    Search s = jpf.getSearch();
-	   
-	    //trace = ChoicePoint.readTrace(conf.getString("choice.use_trace"), vm.getSUTName());
-	
 	}
 
 	@Override
@@ -161,7 +108,7 @@ public class BSFSymbolicListener extends PropertyListenerAdapter implements
 			// result._addDet(Comparator.EQ, sym_err, sym_value);
 			// solve the path condition, then print it
 			// pc.solve();
-			if (SymbolicInstructionFactory.concolicMode) {
+			if (SymbolicInstructionFactory.concolicMode) { 
 				SymbolicConstraintsGeneral solver = new SymbolicConstraintsGeneral();
 				PCAnalyzer pa = new PCAnalyzer();
 				pa.solve(pc, solver);
@@ -189,7 +136,6 @@ public class BSFSymbolicListener extends PropertyListenerAdapter implements
 
 		if (!vm.getSystemState().isIgnored()) {
 			Instruction insn = executedInstruction;
-			// SystemState ss = vm.getSystemState();
 			ThreadInfo ti = currentThread;
 			Config conf = vm.getConfig();
 
@@ -199,17 +145,17 @@ public class BSFSymbolicListener extends PropertyListenerAdapter implements
 				int numberOfArgs = md.getArgumentValues(ti).length;
 
 				MethodInfo mi = md.getInvokedMethod();
-				currMethodName = mi.getFullName();
-				continue_path(vm);
-				if (mi.getFullName().contains(searchPrefix)) {
-					createBFS(mi);
-				}
-
 				ClassInfo ci = mi.getClassInfo();
 				String className = ci.getName();
+
 				StackFrame sf = ti.getTopFrame();
 				String shortName = methodName;
 				String longName = mi.getLongName();
+				
+				CalleeMethod = mi.getFullName(); //added
+				MethodCallStack.push(CalleeMethod); //added
+				CheckPath(); //Added
+				
 				if (methodName.contains("("))
 					shortName = methodName
 							.substring(0, methodName.indexOf("("));
@@ -241,6 +187,7 @@ public class BSFSymbolicListener extends PropertyListenerAdapter implements
 							argTypesStr = argTypesStr + ",";
 					}
 					methodSummary.setArgTypes(argTypesStr);
+
 					// get the symbolic values (changed from constructing them
 					// here)
 					String symValuesStr = "";
@@ -267,7 +214,6 @@ public class BSFSymbolicListener extends PropertyListenerAdapter implements
 						else
 							symVarNameStr = argsInfo[namesIndex].getName()
 									+ "_CONCRETE" + ",";
-						// what happens if the argument is an array?
 						symValuesStr = symValuesStr + symVarNameStr + ",";
 						sfIndex++;
 						namesIndex++;
@@ -283,23 +229,18 @@ public class BSFSymbolicListener extends PropertyListenerAdapter implements
 								symValuesStr.length() - 1);
 					}
 					methodSummary.setSymValues(symValuesStr);
-					// System.out.println("STUART symbVal "+symValuesStr);
+
 					currentMethodName = longName;
 					allSummaries.put(longName, methodSummary);
 				}
 			} else if (insn instanceof JVMReturnInstruction) {
 				MethodInfo mi = insn.getMethodInfo();
 				ClassInfo ci = mi.getClassInfo();
-
-				if (!MethodCallStack.empty()) {
-					// if using golden model can only pop methods used
-					String name = mi.getFullName();
-					if (useGM == false || GMgraph.getNodeMatching(name) != null) {
-						CalleeMethod = MethodCallStack.pop();
-						path.remove(path.size() - 1);
-					}
+				
+				if (!MethodCallStack.empty()) { //added
+					CalleeMethod = MethodCallStack.pop();
 				}
-
+				
 				if (null != ci) {
 					String className = ci.getName();
 					String methodName = mi.getName();
@@ -323,10 +264,6 @@ public class BSFSymbolicListener extends PropertyListenerAdapter implements
 								&& ((PCChoiceGenerator) cg).getCurrentPC() != null) {
 							PathCondition pc = ((PCChoiceGenerator) cg)
 									.getCurrentPC();
-							System.out.println("\tSTUART ==" + pc.stringPC());// SingleLine
-							System.out.println("=======");
-							addPCBFS(mi, pc.stringPC());
-
 							// pc.solve(); //we only solve the pc
 							if (SymbolicInstructionFactory.concolicMode) {
 								SymbolicConstraintsGeneral solver = new SymbolicConstraintsGeneral();
@@ -342,7 +279,7 @@ public class BSFSymbolicListener extends PropertyListenerAdapter implements
 							// after the following statement is executed, the pc
 							// loses its solution
 
-							String pcString = pc.toString();
+							String pcString = pc.toString();// pc.stringPC();
 							Pair<String, String> pcPair = null;
 
 							String returnString = "";
@@ -436,15 +373,6 @@ public class BSFSymbolicListener extends PropertyListenerAdapter implements
 							} else
 								// other types of return
 								returnString = "Return Value: --";
-							// pc.solve();
-							// not clear why this part is necessary
-							/*
-							 * if (SymbolicInstructionFactory.concolicMode) {
-							 * SymbolicConstraintsGeneral solver = new
-							 * SymbolicConstraintsGeneral(); PCAnalyzer pa = new
-							 * PCAnalyzer(); pa.solve(pc,solver); } else
-							 * pc.solve();
-							 */
 
 							pcString = pc.toString();
 							pcPair = new Pair<String, String>(pcString,
@@ -468,9 +396,7 @@ public class BSFSymbolicListener extends PropertyListenerAdapter implements
 																				// recursive
 																				// calls
 							allSummaries.put(longName, methodSummary);
-							if (true) { // STUART if
-										// (SymbolicInstructionFactory.debugMode)
-										// {
+							if (SymbolicInstructionFactory.debugMode) {
 								System.out
 										.println("*************Summary***************");
 								System.out.println("PC is:" + pc.toString());
@@ -483,8 +409,11 @@ public class BSFSymbolicListener extends PropertyListenerAdapter implements
 						}
 					}
 				}
-			}// JVMReturn
+			}
 		}
+	}
+
+	protected void CheckPath() {
 	}
 
 	/*
@@ -492,17 +421,18 @@ public class BSFSymbolicListener extends PropertyListenerAdapter implements
 	 * data structure
 	 */
 
-	@SuppressWarnings("rawtypes")
 	private void printMethodSummary(PrintWriter pw, MethodSummary methodSummary) {
 
 		System.out.println("Inputs: " + methodSummary.getSymValues());
+		@SuppressWarnings("rawtypes")
 		Vector<Pair> pathConditions = methodSummary.getPathConditions();
 		if (pathConditions.size() > 0) {
+			@SuppressWarnings("rawtypes")
 			Iterator it = pathConditions.iterator();
 			String allTestCases = "";
 			while (it.hasNext()) {
-				// System.out.println("STUART "+methodSummary.getMethodName());
 				String testCase = methodSummary.getMethodName() + "(";
+				@SuppressWarnings("rawtypes")
 				Pair pcPair = (Pair) it.next();
 				String pc = (String) pcPair._1;
 				String errorMessage = (String) pcPair._2;
@@ -569,7 +499,6 @@ public class BSFSymbolicListener extends PropertyListenerAdapter implements
 						} else
 							throw new RuntimeException(
 									"## Error: listener does not support type other than int, long, float, double and boolean");
-						// to extend with arrays
 					} else {
 						// need to check if value is concrete
 						if (token.contains("CONCRETE"))
@@ -615,374 +544,10 @@ public class BSFSymbolicListener extends PropertyListenerAdapter implements
 		while (it.hasNext()) {
 			Map.Entry me = (Map.Entry) it.next();
 			MethodSummary methodSummary = (MethodSummary) me.getValue();
-			// System.out.println(methodSummary.toString());//STUART
 			printMethodSummary(pw, methodSummary);
 		}
-
-		printMyGraph();
-		stopTime = System.currentTimeMillis();
-		graphJPFTime = stopTime - origStartTime - graphReadTime;
-		System.out.println("Graph Read Time: " + graphReadTime);
-		System.out.println("Graph JPF Time : " + graphJPFTime);
-		System.out.println("Total Time     : " + (stopTime - origStartTime));
 	}
 
-	/////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////
-	 
-	public void printMyGraph() {
-
-		BFSNode Start = Bgraph.getNodeMatching(startNodeName);
-		BFSNode End = Bgraph.getNodeMatching(finalNodeName);
-		System.out.println("Looking For StartNode = " + startNodeName);
-		System.out.println("Looking For EndNode   = " + finalNodeName);
-		if (Start != null && End != null) {
-			BFSGraph reducedGraph = Bgraph.getPaths(Start, End);
-			if (reducedGraph != null) {
-				System.out.println(reducedGraph.toString() + "\n\n");
-				System.out.println(reducedGraph.toStringPathCond());
-			} else {
-				System.out.println("WARNING: no reduced graph found\n");
-			}
-		} else {
-			if (Start == null) {
-				System.out.println("WARNING: could not find Start "
-						+ startNodeName + "\n");
-			}
-			if (End == null) {
-				System.out.println("WARNING: could not find Final "
-						+ finalNodeName + "\n");
-			}
-			System.out.println("GRAPH:\n" + Bgraph.toString());
-		}
-	}
-
-	@SuppressWarnings("unused")
-	private String formatName(String s) {
-		// System.out.println("STUART input  "+s);
-		String regex = "\\(\\w";
-		s = s.replaceAll(regex, "(");
-		regex = "\\)\\w";
-		s = s.replaceAll(regex, ")");
-		regex = "\\;\\)";
-		s = s.replaceAll(regex, ")");
-		regex = "\\;\\w";
-		s = s.replaceAll(regex, ",");
-		regex = "\\;";
-		s = s.replaceAll(regex, ",");
-		regex = "\\).+";
-		s = s.replaceAll(regex, ")");
-		regex = "(.+)\\.(.+\\(.*)";
-		Pattern p = Pattern.compile(regex);
-		// System.out.println("STUART pattern ==="+p.toString()+"===");
-		Matcher m;
-		m = p.matcher(s);
-		if (m.matches()) {
-			s = m.group(1) + ":" + m.group(2);
-			// System.out.println("STUART   match "+m.group(1)+":"+m.group(2));
-		}
-		regex = "\\/";
-		s = s.replaceAll(regex, ".");
-		// System.out.println("STUART result "+s);
-		return s;
-	}
-
-	private void addPCBFS(MethodInfo mi, String pc) {
-		String name = mi.getFullName();
-		System.out.println("STUART PC =" + pc + "=");
-		BFSNode n;
-		n = Bgraph.getNodeMatching(name);
-		if (n != null) {
-			n.addPath_condition(pc);
-		}
-	}
-
-	private void createBFS(MethodInfo mi) {
-
-		String name = mi.getFullName();
-		//Search.setIgnoredState(check_continue(name));
-		// TODO only for JIMPLE use name = formatName(name);
-		// Add the node to the graph
-		BFSNode to = null;
-		if (useGM == false || GMgraph.getNodeMatching(name) != null) {
-			// only add nodes in golden model
-			FunctionNode fnode = new FunctionNode(name);
-			if (Bgraph.addNode(fnode)) {
-				System.out.println("ADDED node " + fnode.toString());
-			}
-			to = Bgraph.getNodeMatching(name);
-		}
-		if (to != null) {
-			if (!MethodCallStack.empty()) {
-				BFSNode from = MethodCallStack.peek();
-				if (to != null && from != null) {
-					Bgraph.addEdge(from, to);
-				}
-				CalleeMethod = to;
-				MethodCallStack.push(CalleeMethod);
-				path.add(CalleeMethod);
-				if (name.equals(finalNodeName)) {
-					checkPathConstraints(to);
-				}
-			} else {
-				CalleeMethod = to;
-				MethodCallStack.push(CalleeMethod);
-				path.add(CalleeMethod);
-			}
-		}
-
-	}
-
-	protected void readGoldenCFG(String fname) {
-		startTime = System.currentTimeMillis();
-		origStartTime = startTime;
-		if (useGM) {
-			try {
-				GMgraph.read_from_file(fname);
-				System.out.println("=========================");
-				System.out.println(" Golden Model Call Graph");
-				System.out.println("=========================\n");
-				System.out.println(GMgraph.toString());
-				System.out.println("GM StartNode = " + startNodeName);
-				System.out.println("GM EndNode   = " + finalNodeName);
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-		stopTime = System.currentTimeMillis();
-		graphReadTime = stopTime - startTime;
-	}
-	/////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////
-	
-	protected void readGoldenModelJimple() {
-		if (fileList.length != 0) {
-			JimpleParser JP = new JimpleParser();
-			for (String f : fileList) {
-				try {
-					if (f != null) {
-						JP.ReadJimple(f);
-					}
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-			// JP.printCFG();
-			GMgraph = JP.getCfg();
-			BFSNode Start = GMgraph.getNodeMatching(startNodeName);
-			BFSNode End = GMgraph.getNodeMatching(finalNodeName);
-			System.out.println("=========================");
-			System.out.println(" Golden Model Call Graph");
-			System.out.println("=========================\n");
-			System.out.println(GMgraph.toString());
-			System.out.println("GM Looking For StartNode = " + startNodeName);
-			System.out.println("GM Looking For EndNode   = " + finalNodeName);
-			if (Start != null && End != null) {
-				BFSGraph reducedGraph = GMgraph.getPaths(Start, End);
-				if (reducedGraph != null) {
-					System.out.println(reducedGraph.toString() + "\n\n");
-				} else {
-					System.out.println("WARNING: no reduced graph found\n");
-				}
-			} else {
-				if (Start == null) {
-					System.out.println("WARNING: could not find Start "
-							+ startNodeName + "\n");
-				}
-				if (End == null) {
-					System.out.println("WARNING: could not find Final "
-							+ finalNodeName + "\n");
-				}
-				System.out.println("GRAPH:\n" + Bgraph.toString());
-			}
-			System.out.println("=========================");
-			System.out.println("=========================\n");
-		}
-	}
-
-	protected void readGoldenModelBCEL() {
-		if (fileList.length != 0) {
-			GraphGenerator GG = new GraphGenerator();
-			for (String f : fileList) {
-				if (f != null) {
-					try {
-						GG.createCFG(GMgraph, f);
-					} catch (ClassNotFoundException e) {
-						e.printStackTrace();
-					}
-				}
-			}
-			BFSNode Start = GMgraph.getNodeMatching(startNodeName);
-			BFSNode End = GMgraph.getNodeMatching(finalNodeName);
-			System.out.println("=========================");
-			System.out.println(" Golden Model Call Graph");
-			System.out.println("=========================\n");
-			System.out.println(GMgraph.toString());
-			System.out.println("GM Looking For StartNode = " + startNodeName);
-			System.out.println("GM Looking For EndNode   = " + finalNodeName);
-			if (Start != null && End != null) {
-				BFSGraph reducedGraph = GMgraph.getPaths(Start, End);
-				if (reducedGraph != null) {
-					System.out.println(reducedGraph.toString() + "\n\n");
-				} else {
-					System.out.println("WARNING: no reduced graph found\n");
-				}
-			} else {
-				if (Start == null) {
-					System.out.println("WARNING: could not find Start "
-							+ startNodeName + "\n");
-				}
-				if (End == null) {
-					System.out.println("WARNING: could not find Final "
-							+ finalNodeName + "\n");
-				}
-				System.out.println("GRAPH:\n" + Bgraph.toString());
-			}
-			System.out.println("=========================");
-			System.out.println("=========================\n");
-		}
-	}
-
-	@SuppressWarnings("unused")
-	private boolean compareGraphs(BFSGraph one, BFSGraph two) {
-		return one.compare(two);
-	}
-
-	/////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////
-	
-	private boolean checkPathConstraints(BFSNode n) {
-		ArrayList<String> gmConst = new ArrayList<String>();
-		gmConst.add("calc.view.CalculatorView.equals(Lcalc/view/CalculatorView;)V");
-		gmConst.add("calc.noSwing.JButton.pushed()V");
-		gmConst.add("calc.view.CalculatorView$Handler.actionPerformed(Lcalc/noSwing/ActionEvent;)V");
-		gmConst.add("calc.controller.CalculatorController.operation(Ljava/lang/String;)V");
-		gmConst.add("calc.model.CalculatorModel.notifyChanged(Lcalc/model/ModelEvent;)V");
-		gmConst.add("calc.view.CalculatorView.modelChanged(Lcalc/model/ModelEvent;)V");
-		ArrayList<String> p = new ArrayList<String>();
-		ArrayList<String> pp = new ArrayList<String>();
-		boolean result = true;
-
-		for (BFSNode b : path) {
-			p.add(b.getNodeName());
-		}
-		if (p.contains(startNodeName)) { // have final see if we have start
-			String name = n.getNodeName();
-			for (String s : p) {
-				if (gmConst.contains(s)) {
-					pp.add(s);
-				}
-			}
-
-			System.out.println("STUART checking Path from node " + name);
-			System.out.println("STUART path is " + p.toString());
-			System.out.println("STUART contraint path is " + pp.toString());
-			if (!pp.equals(gmConst)) {
-				result = false;
-			}
-
-			if (result == false) {
-				System.out
-						.println("======= FAILED CONSTRAINT PATH ===========");// TODO
-				// BETTER
-				// MESSAGE
-				System.out.println("\t " + name + " -> " + p.toString());
-				System.out
-						.println("should have been \n\t" + gmConst.toString());
-				System.out
-						.println("======= FAILED CONSTRAINT PATH ===========");
-			}
-		}
-		return result;
-	}
-
-//	public boolean check_continue(String m_name) {
-//		return true;
-//	}
-	
-	/////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////
-	private void continue_path(VM vm) {
-		SystemState s = vm.getSystemState();
-		Search ss = vm.getSearch();
-		//System.out.println("-----------STUART continue path "+currMethodName+"---------");
-		//s.setIgnored(methodNameIgnore());
-		//s.setBoring(methodNameIgnore());
-//STUART		ss.setIgnoredState(methodNameIgnore());
-	}
-
-private boolean methodNameIgnore() {
-	ArrayList<String> s = new ArrayList<String>();
-	s.add("calc.view.CalculatorView.addition(Lcalc/view/CalculatorView;II)V");
-	s.add("calc.model.CalculatorModel.hello()V");
-	s.add("calc.model.CalculatorModel.boo()V");
-	s.add("calc.view.CalculatorView.subtraction(Lcalc/view/CalculatorView;II)V");
-	
-	//s.add("");
-	//s.add("");
-	
-	for(String ss: s) {
-		if(ss.equals(currMethodName)) {
-			return true;
-		}
-	}
-	return false;
-}
-	@Override
-	public boolean check(Search search, VM vm) {
-		System.out.println("-----------STUART check "+currMethodName+"---------");	
-		return true;
-	}
-
-	@Override
-	public void stateProcessed(Search search) {
-		System.out.println("-----------STUART stateProcessed "+currMethodName+"---------");		
-	}
-	@Override
-	public void statePurged(Search search) {
-		System.out.println("-----------STUART statePurged "+currMethodName+"---------");		
-	}
-//	@Override
-//	public void stateRestored(Search search) {
-//		System.out.println("-----------STUART stateRestored "+currMethodName+"---------");		
-//	}
-	@Override
-	public void stateStored(Search search) {
-		System.out.println("-----------STUART stateStored "+currMethodName+"---------");		
-	}
-	@Override
-	public void searchStarted(Search search) {
-		System.out.println("-----------STUART searchStarted "+currMethodName+"---------");		
-	}
-	@Override
-	public void searchFinished(Search search) {
-		System.out.println("-----------STUART searchFinished "+currMethodName+"---------");		
-	}
-	@Override
-	public void searchProbed(Search search) {
-		System.out.println("-----------STUART searchProbed "+currMethodName+"---------");		
-	}
-	@Override
-	  public void stateAdvanced(Search search) {
-		System.out.println("-----------STUART stateAdvance "+currMethodName+"---------");
-//		search.setIgnoredState(false);
-
-	  }
-	 @Override
-	  public void stateBacktracked (Search search) {
-		 System.out.println("-----------STUART stateBacktracked "+currMethodName+"---------");  
-	  }
-	  
-	  @Override
-	  public void stateRestored (Search search) {
-		  System.out.println("-----------STUART stateRestored "+currMethodName+"---------"); 
-	  }
-	  	
-	/////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////
-	
 	protected class MethodSummary {
 		private String methodName = "";
 		private String argTypes = "";
@@ -1039,5 +604,4 @@ private boolean methodNameIgnore() {
 		}
 
 	}
-
 }
